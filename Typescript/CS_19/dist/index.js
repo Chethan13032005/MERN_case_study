@@ -1,0 +1,18 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+require("reflect-metadata");
+const typedi_1 = require("typedi");
+const NewsAggregator_1 = require("./NewsAggregator");
+const APISource_1 = require("./APISource");
+const MockSource_1 = require("./MockSource");
+const RSSFeedSource_1 = require("./RSSFeedSource");
+const initial = typedi_1.Container.get(NewsAggregator_1.NewsAggregator);
+initial.getLatestArticles();
+typedi_1.Container.reset();
+typedi_1.Container.set(RSSFeedSource_1.RSSFeedSource, new APISource_1.APISource());
+const agg = typedi_1.Container.get(NewsAggregator_1.NewsAggregator);
+agg.getLatestArticles();
+typedi_1.Container.reset();
+typedi_1.Container.set(RSSFeedSource_1.RSSFeedSource, new MockSource_1.MockSource());
+const mock = typedi_1.Container.get(NewsAggregator_1.NewsAggregator);
+mock.getLatestArticles();
