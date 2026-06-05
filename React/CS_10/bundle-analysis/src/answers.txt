@@ -1,0 +1,10 @@
+3 largest libraries in my project
+-chart.js
+-moment
+-lodash
+
+no change on changing to esnext
+
+on removing unused import -chart.js saved 395.91kb
+
+

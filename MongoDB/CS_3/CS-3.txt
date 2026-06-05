@@ -1,0 +1,77 @@
+You’re building a new feature for FinTrust:
+Refund a payment: If a user disputes a payment, you must:
+Add the refund amount back to the sender’s balance.
+Subtract the amount from the recipient’s balance.
+Update the original transaction’s status to “refunded.”
+Log a new transaction record as a refund.
+
+Ensure:
+If any step fails (e.g., recipient doesn’t have enough balance to refund), no changes are made.
+All operations are ACID-compliant.
+
+-------------------------------------------------------------------------------------------------------------------------------------------
+
+
+const senderId = ObjectId("665f4d7e8b3e6c1e24a7b3e1");   // Alice (getting her money back)
+const recipientId = ObjectId("665f4d7e8b3e6c1e24a7b3e2"); // Bob (returning the money)
+const refundAmount = 20.00;
+const originalTxnId = new ObjectId(); 
+const session = db.getMongo().startSession();
+session.startTransaction();
+
+try {
+  
+  const currentDbName = db.getName();
+  const sessionDb = session.getDatabase(currentDbName);
+  
+  const usersColl = sessionDb.users;
+  const txnsColl = sessionDb.transactions;
+
+  const recipient = usersColl.findOne({ _id: recipientId });
+  
+  if (recipient.balance < refundAmount) {
+    throw new Error(`Refund failed! Bob only has $${recipient.balance} and cannot refund $${refundAmount}.`);
+  }
+
+ 
+  usersColl.updateOne(
+    { _id: senderId },
+    { $inc: { balance: refundAmount } }
+  );
+
+ 
+  usersColl.updateOne(
+    { _id: recipientId },
+    { $inc: { balance: -refundAmount } }
+  );
+
+  
+  txnsColl.updateOne(
+    { _id: originalTxnId },
+    { $set: { status: "refunded" } }
+  );
+
+ 
+  txnsColl.insertOne({
+    from: recipientId,
+    to: senderId,
+    amount: refundAmount,
+    type: "refund",
+    originalTransactionId: originalTxnId,
+    date: new Date(),
+    status: "completed"
+  });
+
+  session.commitTransaction();
+  print("Refund processed successfully!");
+
+} catch (error) {
+  print(error.message);
+  print("Rolling back all changes...");
+  
+  session.abortTransaction();
+  
+} finally {
+ 
+  session.endSession();
+}
